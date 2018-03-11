@@ -12,8 +12,7 @@ export const getWallet = (password: string): Account => {
 	return wallet.open(pass);
 };
 
-export const createSimpleWallet = (password: string): Account => {
+export const createSimpleWallet = (password: string): SimpleWallet => {
 	const pass = new Password(password);
-	const wallet = SimpleWallet.create(WALLET_NAME, pass);
-	return wallet.open(pass);
+	return SimpleWallet.create(WALLET_NAME, pass);
 };
