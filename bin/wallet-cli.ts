@@ -2,27 +2,28 @@
 const prompt = require('prompt');
 const fs = require('fs');
 const os = require('os');
+const child_process = require("child_process");
 import { white } from 'colors';
 import { green, magenta, red, yellow } from 'colors/safe';
-import { Password, SimpleWallet } from 'nem-library';
-import { createSimpleWallet } from '../src/wallet/wallet';
+import { Password, SimpleWallet, Account } from 'nem-library';
+import { createSimpleWallet, getAccountBalance } from '../src/wallet/wallet';
 const CFonts = require('cfonts');
+const Spinner = require('cli-spinner').Spinner;
 
 declare let process: any;
 const args = process.argv.slice(2);
 const homePath = `${os.homedir()}/cache-wallets`;
-let walletPaths: Array<string>;
-// let selectedWallet: SimpleWallet;
+let defaultWalletPath: string;
 
-CFonts.say('Cache', { colors: ['cyan']});
 if (args.length === 0) {
+	CFonts.say('Cache', { colors: ['cyan']});
 	console.log(`Usage:
 
 	cache wallet list
 		Lists all of the wallets available in your cache-wallets directory
 	
-	cache wallet select <number>
-		Choose the wallet you want to work with ie 'cache wallet select 3'
+	cache wallet default <number>
+		Choose the wallet you want to set as default ie 'cache wallet default 3'
 	
 	cache balance
 		Gets your current wallet balance and public address
@@ -51,7 +52,7 @@ const downloadWallet = (wallet: SimpleWallet, address: string) => {
 	});
 };
 
-const pwd = () => {
+const createPwd = () => {
 	console.log(white(
 `\nPlease enter a unique password ${yellow('(8 character minimum)')}.\n 
 This password will be used to encrypt your private key and make working with your wallet easier.\n\n`
@@ -75,7 +76,7 @@ This password will be used to encrypt your private key and make working with you
 	}, async (_, result) => {
 		if (result.password !== result.confirmPass) {
 			console.log(magenta('\nPasswords do not match.\n\n'));
-			pwd();
+			createPwd();
 		} else {
 			const wallet = createSimpleWallet(result.password);
 			const pass = new Password(result.password);
@@ -92,55 +93,132 @@ This password will be used to encrypt your private key and make working with you
 	})
 };
 
-const listWallets = async () => {
+const listWallets = () => {
 	console.log(white('Fetching wallets...\n'));
 
-	loadWalletPaths(() => {
-		if (walletPaths.length === 0) {
+	loadWalletPaths(paths => {
+		if (paths.length === 0) {
 			console.log(white(`No wallets found. Create a new wallet or place an existing .wlt file
 in ${homePath}\n`));
 			process.exit(1);
 		}
-		for (let x = 0; x < walletPaths.length; x++) {
-			console.log(`${x} - ${walletPaths[x]}`);
+		for (let x = 0; x < paths.length; x++) {
+			console.log(`${x} - ${paths[x]}`);
 		}
 		console.log('\n')
 	});
 };
 
-const loadWalletPaths = (onLoaded?: () => void) => {
-	// Load wallet paths behind the scenes automatically
+const loadWalletPaths = (onLoaded: (paths: Array<string>) => void) => {
 	fs.readdir(homePath, (_, files) => {
 		let paths: Array<string> = [];
 		for (let x = 0; x < files.length; x++) {
+			if (files[x].includes('default')) {
+				defaultWalletPath = files[x];
+			}
 			const str = files[x].substring(files[x].length - 3, files[x].length);
 			if (str === 'wlt') {
 				paths.push(files[x]);
 			}
 		}
-		walletPaths = paths;
-		if (onLoaded) {
-			onLoaded();
+		onLoaded(paths);
+	});
+};
+const attemptWalletOpen = (wallet: SimpleWallet): Promise<Account> => {
+	return new Promise<Account>((resolve, reject) => {
+		prompt.start();
+		prompt.get({
+			properties: {
+				password: {
+					description: white('Password'),
+					hidden: true
+				}
+			}
+		}, (_, result) => {
+			const pass = new Password(result);
+			try {
+				resolve(wallet.open(pass));
+			} catch (err) {
+				console.log(red(`${err}`));
+				console.log(white('Please try again'));
+				reject();
+			}
+		});
+	});
+};
+const loadWallet = (): SimpleWallet => {
+	loadWalletPaths(_ => {});
+	child_process.execSync('sleep 1');
+	const fullPath = `${homePath}/${defaultWalletPath}`;
+	const contents = fs.readFileSync(fullPath, 'utf8');
+	return SimpleWallet.readFromWLT(contents);
+};
+const getBalance = async () => {
+	const wallet = loadWallet();
+	try {
+		const account = await attemptWalletOpen(wallet);
+		const spinner = new Spinner('processing.. %s');
+		spinner.setSpinnerString(9);
+		spinner.start();
+		const cacheMosaic = await getAccountBalance(account);
+		const balance = cacheMosaic ? cacheMosaic.quantity : 0;
+		spinner.stop();
+		const bal = Math.round(balance * 1e6) / 1e6;
+
+		console.log(green('\n\nCache Balance: '));
+		console.log(white(`${bal}\n`));
+	} catch (err) {
+		if (err) {
+			console.log(err);
+		}
+		getBalance();
+	}
+};
+const setDefaultWallet = (walletIndex: number) => {
+	loadWalletPaths(paths => {
+		if (paths[walletIndex].includes('default')) return;
+		for (let x = 0; x < paths.length; x++) {
+			let newPath = paths[x].replace('default-','');
+			newPath = `${homePath}/${newPath}`;
+			fs.rename(`${homePath}/${paths[x]}`, newPath, (_) => {});
+		}
+		setTimeout(() => {
+			fs.rename(`${homePath}/${paths[walletIndex]}`, `${homePath}/default-${paths[walletIndex]}`)
+		}, 800);
+	});
+};
+const main = () => {
+	loadWalletPaths(paths => {
+		if (args[0] === 'wallet') {
+			if (args[1] === 'create') {
+				createPwd();
+			} else if (args[1] === 'balance') {
+				if (!defaultWalletPath) {
+					return console.log(yellow(`\nYou must first set a default wallet. Run ${white('cache wallet list')} then ${white('cache wallet default <number>')}\n`));
+				}
+				getBalance();
+			} else if (args[1] === 'list') {
+				listWallets();
+			} else if (args[1] === 'default') {
+				const idx = parseInt(args[2]);
+				if (isNaN(idx)) {
+					console.log(red('Invalid wallet index. Must be an Integer'))
+				} else {
+					if (idx >= 0 && idx < paths.length) {
+						setDefaultWallet(idx);
+					} else {
+						console.log(red('Invalid wallet selection'))
+					}
+				}
+			}
 		}
 	});
 };
 
-const main = async () => {
-	if (args[0] === 'wallet') {
-		if (args[1] === 'create') {
-			pwd();
-		} else if (args[1] === 'list') {
-			await listWallets();
-		} else if (args[1] === 'select') {
-
-		}
-	}
-};
-
-loadWalletPaths();
 main();
 
-process.on('uncaughtException', function(_) {
+process.on('uncaughtException', function(err) {
+	console.log(err);
 	console.log('Wallet closed');
 	process.exit(1);
 });
