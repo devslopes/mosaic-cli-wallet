@@ -1,6 +1,6 @@
 import {
 	Account, Address, EmptyMessage, MosaicHttp, MosaicId, NEMLibrary, NetworkTypes, Password, SimpleWallet, TimeWindow,
-	TransferTransaction, AccountHttp, Mosaic
+	TransferTransaction, AccountHttp, Mosaic, TransactionHttp, NemAnnounceResult
 } from 'nem-library';
 import { Observable } from 'rxjs/Observable';
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
@@ -31,14 +31,25 @@ export const createSimpleWallet = (password: string): SimpleWallet => {
 	return SimpleWallet.create(WALLET_NAME, pass);
 };
 
-export const sendCache = () => {
-	Observable.from([cacheId])
-		.flatMap(mosaic => mosaicHttp.getMosaicTransferableWithAmount(mosaic, 10))
-		.toArray()
-		.map(mosaics => TransferTransaction.createWithMosaics(
-			TimeWindow.createWithDeadline(),
-			new Address('blah'),
-			mosaics,
-			EmptyMessage))
-
+export const sendCache = (toAddress: string, amount: number, account: Account): Promise<NemAnnounceResult> => {
+	return new Promise<NemAnnounceResult>((resolve, reject) => {
+		const transactionHttp = new TransactionHttp();
+		Observable.from([cacheId])
+			.flatMap(mosaic => mosaicHttp.getMosaicTransferableWithAmount(mosaic, amount))
+			.toArray()
+			.map(mosaics => TransferTransaction.createWithMosaics(
+				TimeWindow.createWithDeadline(),
+				new Address(toAddress),
+				mosaics,
+				EmptyMessage))
+			.map(transaction => account.signTransaction(transaction))
+			.flatMap(signed => transactionHttp.announceTransaction(signed))
+			.subscribe(result => {
+				console.log(result);
+				resolve(result);
+			}, error => {
+				console.log(error);
+				reject(error);
+			});
+	});
 };

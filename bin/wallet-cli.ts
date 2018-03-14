@@ -6,7 +6,7 @@ const child_process = require("child_process");
 import { white } from 'colors';
 import { green, magenta, red, yellow } from 'colors/safe';
 import { Password, SimpleWallet, Account } from 'nem-library';
-import { createSimpleWallet, getAccountBalance } from '../src/wallet/wallet';
+import { createSimpleWallet, getAccountBalance, sendCache } from '../src/wallet/wallet';
 const CFonts = require('cfonts');
 import { Spinner } from 'cli-spinner';
 
@@ -14,6 +14,7 @@ declare let process: any;
 const args = process.argv.slice(2);
 const homePath = `${os.homedir()}/cache-wallets`;
 let defaultWalletPath: string;
+let selectedAccount: Account;
 
 if (args.length === 0) {
 	CFonts.say('Cache', { colors: ['cyan']});
@@ -126,6 +127,7 @@ const loadWalletPaths = (onLoaded: (paths: Array<string>) => void) => {
 };
 const attemptWalletOpen = (wallet: SimpleWallet): Promise<Account> => {
 	return new Promise<Account>((resolve, reject) => {
+		prompt.message = white('Wallet Login');
 		prompt.start();
 		prompt.get({
 			properties: {
@@ -150,13 +152,14 @@ const loadWallet = (): SimpleWallet => {
 	loadWalletPaths(_ => {});
 	child_process.execSync('sleep 1');
 	const fullPath = `${homePath}/${defaultWalletPath}`;
-	const contents = fs.readFileSync(fullPath, 'utf8');
+	const contents = fs.readFileSync(fullPath);
 	return SimpleWallet.readFromWLT(contents);
 };
-const getBalance = async () => {
+const getBalance = async (onBalance: (balance: number) => void) => {
 	const wallet = loadWallet();
 	try {
 		const account = await attemptWalletOpen(wallet);
+		selectedAccount = account;
 		console.log('\n');
 		const spinner = new Spinner(yellow('Fetching balance... %s'));
 		spinner.setSpinnerString(0);
@@ -167,11 +170,12 @@ const getBalance = async () => {
 		const bal = (balance / 1e6).toString();
 		console.log('\n');
 		console.log(`\n${white('Cache Balance:')} ${white(bal)}\n`);
+		onBalance(balance / 1e6);
 	} catch (err) {
 		if (err) {
 			console.log(err);
 		}
-		getBalance();
+		getBalance(_ => {});
 	}
 };
 const setDefaultWallet = (walletIndex: number) => {
@@ -187,16 +191,22 @@ const setDefaultWallet = (walletIndex: number) => {
 		}, 800);
 	});
 };
+const isDefaultWallet = (): boolean => {
+	if (!defaultWalletPath) {
+		console.log(yellow(`\nYou must first set a default wallet. Run ${white('cache wallet list')} then ${white('cache wallet default <number>')}\n`));
+		return false;
+	}
+	return true;
+};
 const main = () => {
 	loadWalletPaths(paths => {
 		if (args[0] === 'wallet') {
 			if (args[1] === 'create') {
 				createPwd();
 			} else if (args[1] === 'balance') {
-				if (!defaultWalletPath) {
-					return console.log(yellow(`\nYou must first set a default wallet. Run ${white('cache wallet list')} then ${white('cache wallet default <number>')}\n`));
+				if (isDefaultWallet()) {
+					getBalance(_ => {});
 				}
-				getBalance();
 			} else if (args[1] === 'list') {
 				listWallets();
 			} else if (args[1] === 'default') {
@@ -210,6 +220,30 @@ const main = () => {
 						console.log(red('Invalid wallet selection'))
 					}
 				}
+			} else if (args[1] === 'send') {
+				if (!isDefaultWallet()) return;
+				getBalance(async (balance) => {
+					const amt = parseFloat(args[2]);
+					const address = args[3];
+					if (isNaN(amt)) {
+						console.log(red('Must provide a valid number with maximum of 6 digits ie 10.356784'));
+						process.exit(1);
+					}
+					if (!address) {
+						console.log(red('Must provide a valid recipient address'));
+						process.exit(1);
+					}
+					if  (amt > balance) {
+						console.log(red(`You don't have enough cache to send`));
+						process.exit(1);
+					}
+					try {
+						const result = await sendCache(address, amt, selectedAccount);
+						console.log(result);
+					} catch (err) {
+						console.log(err);
+					}
+				});
 			}
 		}
 	});
