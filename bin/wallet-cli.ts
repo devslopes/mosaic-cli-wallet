@@ -8,7 +8,7 @@ import { green, magenta, red, yellow } from 'colors/safe';
 import { Password, SimpleWallet, Account } from 'nem-library';
 import { createSimpleWallet, getAccountBalance } from '../src/wallet/wallet';
 const CFonts = require('cfonts');
-const Spinner = require('cli-spinner').Spinner;
+import { Spinner } from 'cli-spinner';
 
 declare let process: any;
 const args = process.argv.slice(2);
@@ -157,16 +157,16 @@ const getBalance = async () => {
 	const wallet = loadWallet();
 	try {
 		const account = await attemptWalletOpen(wallet);
-		const spinner = new Spinner('processing.. %s');
-		spinner.setSpinnerString(9);
+		console.log('\n');
+		const spinner = new Spinner(yellow('Fetching balance... %s'));
+		spinner.setSpinnerString(0);
 		spinner.start();
 		const cacheMosaic = await getAccountBalance(account);
 		const balance = cacheMosaic ? cacheMosaic.quantity : 0;
 		spinner.stop();
-		const bal = Math.round(balance * 1e6) / 1e6;
-
-		console.log(green('\n\nCache Balance: '));
-		console.log(white(`${bal}\n`));
+		const bal = (balance / 1e6).toString();
+		console.log('\n');
+		console.log(`\n${white('Cache Balance:')} ${white(bal)}\n`);
 	} catch (err) {
 		if (err) {
 			console.log(err);
