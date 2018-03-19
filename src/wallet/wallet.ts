@@ -3,7 +3,8 @@ import {
 	TransferTransaction, AccountHttp, Mosaic, TransactionHttp, NemAnnounceResult
 } from 'nem-library';
 import { Observable } from 'rxjs/Observable';
-NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
+const NETWORK = NetworkTypes.TEST_NET;
+NEMLibrary.bootstrap(NETWORK);
 
 const WALLET_NAME = 'cache wallet';
 const namespace = 'devslopes';
@@ -11,26 +12,51 @@ const cache = 'cache';
 const cacheId = new MosaicId(namespace, cache);
 const mosaicHttp = new MosaicHttp();
 
-export const getAccountBalance = (account: Account): Promise<Mosaic | null> => {
-	return new Promise<Mosaic | null>((resolve, reject) => {
+export const getAccountBalances = (account: Account): Promise<Array<Mosaic>> => {
+	return new Promise<Array<Mosaic>>((resolve, reject) => {
 		const accountHttp = new AccountHttp();
 		accountHttp.getMosaicOwnedByAddress(account.address).subscribe(mosaics => {
-			const cacheMosaic = mosaics.find((mosaic) => {
-				return mosaic.mosaicId.name === cache
-			});
-			if (!cacheMosaic) resolve(null);
-			resolve(cacheMosaic);
+			resolve(mosaics);
 		}, error => {
 			reject(error);
 		});
 	});
 };
 
-export const createSimpleWallet = (password: string): SimpleWallet => {
+export const cacheBalance = (balances: Array<Mosaic>): number => {
+	const cacheMosaic = balances.find((mosaic) => {
+		return mosaic.mosaicId.name === cache
+	});
+	if (!cacheMosaic) return 0;
+	return cacheMosaic.quantity;
+};
+
+export const xemBalance = (balances: Array<Mosaic>): number => {
+	const xemMosaic = balances.find((mosaic) => {
+		return mosaic.mosaicId.name === 'xem'
+	});
+	if (!xemMosaic) return 0;
+	return xemMosaic.quantity;
+};
+
+export const createSimpleWallet= (password: string): SimpleWallet => {
 	const pass = new Password(password);
 	return SimpleWallet.create(WALLET_NAME, pass);
 };
-
+export const prepareTransfer = (toAddress: string, amount: number): Promise<TransferTransaction> => {
+	return new Promise<TransferTransaction>((resolve, reject) => {
+			mosaicHttp.getMosaicTransferableWithAmount(cacheId, amount)
+				.subscribe(transferable => {
+					resolve(TransferTransaction.createWithMosaics(
+						TimeWindow.createWithDeadline(),
+						new Address(toAddress),
+						[transferable],
+						EmptyMessage))
+				}, error => {
+					reject(error);
+				});
+	});
+};
 export const sendCache = (toAddress: string, amount: number, account: Account): Promise<NemAnnounceResult> => {
 	return new Promise<NemAnnounceResult>((resolve, reject) => {
 		const transactionHttp = new TransactionHttp();
@@ -45,10 +71,8 @@ export const sendCache = (toAddress: string, amount: number, account: Account): 
 			.map(transaction => account.signTransaction(transaction))
 			.flatMap(signed => transactionHttp.announceTransaction(signed))
 			.subscribe(result => {
-				console.log(result);
 				resolve(result);
 			}, error => {
-				console.log(error);
 				reject(error);
 			});
 	});

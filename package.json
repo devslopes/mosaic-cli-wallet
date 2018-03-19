@@ -14,7 +14,7 @@
     "cli-spinner": "^0.2.8",
     "color": "^3.0.0",
     "marked": "^0.3.17",
-    "nem-library": "1.0.0",
+    "nem-library": "1.0.1",
     "prompt": "^1.0.0",
     "rxjs": "^5.5.6"
   },
