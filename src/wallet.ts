@@ -4,7 +4,7 @@ import {
 } from 'nem-library';
 import { Observable } from 'rxjs/Observable';
 
-const NETWORK = NetworkTypes.TEST_NET;
+const NETWORK = NetworkTypes.MAIN_NET;
 NEMLibrary.bootstrap(NETWORK);
 
 const mosaicSettings = require('./mosaic-settings.json');
