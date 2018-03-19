@@ -2,14 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="12f6398e-7a13-43e2-9da0-ab0fb7beb990" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/mosaic-settings.json" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
-      <change beforePath="$PROJECT_DIR$/bin/wallet-cli.js" afterPath="$PROJECT_DIR$/bin/wallet-cli.js" />
-      <change beforePath="$PROJECT_DIR$/bin/wallet-cli.ts" afterPath="$PROJECT_DIR$/bin/wallet-cli.ts" />
-      <change beforePath="$PROJECT_DIR$/package.json" afterPath="$PROJECT_DIR$/package.json" />
-      <change beforePath="$PROJECT_DIR$/src/wallet/wallet.js" afterPath="$PROJECT_DIR$/src/wallet.js" />
-      <change beforePath="$PROJECT_DIR$/src/wallet/wallet.ts" afterPath="$PROJECT_DIR$/src/wallet.ts" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
@@ -54,8 +47,8 @@
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="FIRST">
-              <first_editor relative-caret-position="717">
-                <caret line="31" column="62" lean-forward="false" selection-start-line="31" selection-start-column="62" selection-end-line="31" selection-end-column="62" />
+              <first_editor relative-caret-position="240">
+                <caret line="8" column="29" lean-forward="true" selection-start-line="8" selection-start-column="29" selection-end-line="8" selection-end-column="29" />
                 <folding />
               </first_editor>
               <second_editor />
@@ -199,6 +192,11 @@
             <path>
               <item name="cache-wallet" type="b2602c69:ProjectViewProjectNode" />
               <item name="cache-wallet" type="462c0819:PsiDirectoryNode" />
+              <item name="assets" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="cache-wallet" type="b2602c69:ProjectViewProjectNode" />
+              <item name="cache-wallet" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
@@ -254,12 +252,12 @@
       <workItem from="1520737948403" duration="12935000" />
       <workItem from="1520925246622" duration="2030000" />
       <workItem from="1520976404113" duration="30731000" />
-      <workItem from="1521352654512" duration="14531000" />
+      <workItem from="1521352654512" duration="14992000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="70952000" />
+    <option name="totallyTimeSpent" value="71413000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
@@ -692,8 +690,8 @@
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="FIRST">
-          <first_editor relative-caret-position="717">
-            <caret line="31" column="62" lean-forward="false" selection-start-line="31" selection-start-column="62" selection-end-line="31" selection-end-column="62" />
+          <first_editor relative-caret-position="240">
+            <caret line="8" column="29" lean-forward="true" selection-start-line="8" selection-start-column="29" selection-end-line="8" selection-end-column="29" />
             <folding />
           </first_editor>
           <second_editor />

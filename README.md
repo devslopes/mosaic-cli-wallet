@@ -2,7 +2,11 @@
 
 # Cache Wallet
 
-This is the official wallet for the **cache** cryptocurrency. **cache** is built on the NEM blockchain. This is a CLI version of the wallet and requires Node 8.0+ to run.
+This is the official wallet for the **cache** cryptocurrency. **cache** is built on the [NEM blockchain](https://nem.io). This is a CLI version of the wallet and requires Node 8.0+ to run.
+
+Cache works on top of XEM and you will need a small amount of it to cover fees for transferring cache. Download the NEM Nano Wallet to get some XEM:
+
+![xem](assets/xem-wallet.png)
 
 # Getting Started
 
