@@ -6,7 +6,7 @@ This is the official wallet for the **cache** cryptocurrency. **cache** is built
 
 Cache works on top of XEM and you will need a small amount of it to cover fees for transferring cache. Download the NEM Nano Wallet to get some XEM:
 
-![xem](assets/xem-wallet.png)
+[![xem](/assets/xem-wallet.png?raw=true)][https://nem.io/downloads/]
 
 # Getting Started
 
