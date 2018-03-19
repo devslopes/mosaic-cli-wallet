@@ -3,13 +3,15 @@ import {
 	TransferTransaction, AccountHttp, Mosaic, TransactionHttp, NemAnnounceResult
 } from 'nem-library';
 import { Observable } from 'rxjs/Observable';
+
 const NETWORK = NetworkTypes.TEST_NET;
 NEMLibrary.bootstrap(NETWORK);
 
-const WALLET_NAME = 'cache wallet';
-const namespace = 'devslopes';
-const cache = 'cache';
-const cacheId = new MosaicId(namespace, cache);
+const mosaicSettings = require('./mosaic-settings.json');
+const WALLET_NAME = mosaicSettings.wallet_name;
+const namespace = mosaicSettings.mosaic_namespace;
+const mosaicName = mosaicSettings.mosaic_name;
+const mosaicId = new MosaicId(namespace, mosaicName);
 const mosaicHttp = new MosaicHttp();
 
 export const getAccountBalances = (account: Account): Promise<Array<Mosaic>> => {
@@ -23,12 +25,12 @@ export const getAccountBalances = (account: Account): Promise<Array<Mosaic>> => 
 	});
 };
 
-export const cacheBalance = (balances: Array<Mosaic>): number => {
-	const cacheMosaic = balances.find((mosaic) => {
-		return mosaic.mosaicId.name === cache
+export const mosaicBalance = (balances: Array<Mosaic>): number => {
+	const found = balances.find((mosaic) => {
+		return mosaic.mosaicId.name === mosaicName
 	});
-	if (!cacheMosaic) return 0;
-	return cacheMosaic.quantity;
+	if (!found) return 0;
+	return found.quantity;
 };
 
 export const xemBalance = (balances: Array<Mosaic>): number => {
@@ -45,7 +47,7 @@ export const createSimpleWallet= (password: string): SimpleWallet => {
 };
 export const prepareTransfer = (toAddress: string, amount: number): Promise<TransferTransaction> => {
 	return new Promise<TransferTransaction>((resolve, reject) => {
-			mosaicHttp.getMosaicTransferableWithAmount(cacheId, amount)
+			mosaicHttp.getMosaicTransferableWithAmount(mosaicId, amount)
 				.subscribe(transferable => {
 					resolve(TransferTransaction.createWithMosaics(
 						TimeWindow.createWithDeadline(),
@@ -57,10 +59,10 @@ export const prepareTransfer = (toAddress: string, amount: number): Promise<Tran
 				});
 	});
 };
-export const sendCache = (toAddress: string, amount: number, account: Account): Promise<NemAnnounceResult> => {
+export const sendMosaic = (toAddress: string, amount: number, account: Account): Promise<NemAnnounceResult> => {
 	return new Promise<NemAnnounceResult>((resolve, reject) => {
 		const transactionHttp = new TransactionHttp();
-		Observable.from([cacheId])
+		Observable.from([mosaicId])
 			.flatMap(mosaic => mosaicHttp.getMosaicTransferableWithAmount(mosaic, amount))
 			.toArray()
 			.map(mosaics => TransferTransaction.createWithMosaics(

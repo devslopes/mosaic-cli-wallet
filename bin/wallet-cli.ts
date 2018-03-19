@@ -1,35 +1,56 @@
 #!/usr/bin/env node
-const prompt = require('prompt');
-const fs = require('fs');
-const os = require('os');
+
+// Packages for user input and display for CLI
+import { Spinner } from 'cli-spinner';
 import { white } from 'colors';
 import { green, magenta, red, yellow } from 'colors/safe';
-import { Password, SimpleWallet, Account } from 'nem-library';
-import {
-	cacheBalance, createSimpleWallet, getAccountBalances, prepareTransfer, sendCache,
-	xemBalance
-} from '../src/wallet/wallet';
 const CFonts = require('cfonts');
-import { Spinner } from 'cli-spinner';
+const prompt = require('prompt');
 
+// fs and os are native node packages for working with file system
+const fs = require('fs');
+const os = require('os');
+
+// Official nem-library
+import { Password, SimpleWallet, Account } from 'nem-library';
+
+// Wallet functions for this app
+import {
+	mosaicBalance, createSimpleWallet, getAccountBalances, prepareTransfer, sendMosaic, xemBalance
+} from '../src/wallet';
+
+// JSON File for mosaic settings - can be replaced with any mosaic
+const mosaicSettings = require('../src/mosaic-settings.json');
+const MOSAIC_NAME = mosaicSettings.mosaic_name;
+
+// Must declare process since Typescript doesn't know about it
 declare let process: any;
+
+// Grab user arguments from command line
 const args = process.argv.slice(2);
-const PATH_HOME = `${os.homedir()}/cache-wallets`;
-const PATH_WALLET = `${PATH_HOME}/cache-wallet.wlt`;
+
+// Paths for saving and loading wallets
+const PATH_HOME = `${os.homedir()}/${MOSAIC_NAME}-wallets`;
+const PATH_WALLET = `${PATH_HOME}/${MOSAIC_NAME}-wallet.wlt`;
+
+// When an account is loaded store it so it can be used later
 let selectedAccount: Account;
 
+/**
+ * Show available commands for the user
+ */
 if (args.length === 0) {
-	CFonts.say('Cache', { colors: ['cyan']});
+	CFonts.say(`${MOSAIC_NAME}`, { colors: ['cyan']});
 	console.log(`Usage:
 
-	cache balance
+	${MOSAIC_NAME} balance
 		Gets your current wallet balance and public address
 	
-	cache send <amount> <address>
-		Sends cache from your wallet to the specified address
+	${MOSAIC_NAME} send <amount> <address>
+		Sends ${MOSAIC_NAME} from your wallet to the specified address
 	
-	cache wallet create
-		Guides you through creating a new cache wallet
+	${MOSAIC_NAME} wallet create
+		Guides you through creating a new ${MOSAIC_NAME} wallet
 	`);
 	process.exit(1);
 }
@@ -50,13 +71,16 @@ const downloadWallet = (wallet: SimpleWallet) => {
 	let fullPath = PATH_WALLET;
 	if (fs.existsSync(fullPath)) {
 		const stamp = new Date().toISOString();
-		fullPath = `${PATH_HOME}/${stamp}-cache-wallet.wlt`
+		fullPath = `${PATH_HOME}/${stamp}-${MOSAIC_NAME}-wallet.wlt`
 	}
 	fs.writeFileSync(fullPath, wallet.writeWLTFile());
 
 	console.log(green(`Downloaded wallet to ${fullPath}`))
 };
 
+/**
+ * Creates password when making a new wallet
+ */
 const createPwd = () => {
 	console.log(white(
 		`\nPlease enter a unique password ${yellow('(8 character minimum)')}.\n 
@@ -65,7 +89,7 @@ This password will be used to encrypt your private key and make working with you
 	console.log(red(
 		`Store this password somewhere safe. If you lose or forget it you will never be able to transfer funds\n`
 	));
-	prompt.message = white('Cache Wallet');
+	prompt.message = white(`${MOSAIC_NAME} wallet`);
 	prompt.start();
 	prompt.get({
 		properties: {
@@ -83,13 +107,18 @@ This password will be used to encrypt your private key and make working with you
 			console.log(magenta('\nPasswords do not match.\n\n'));
 			createPwd();
 		} else {
+			/**
+			 * Create new SimpleWallet
+			 * Open it to access the new Account
+			 * Print account info
+			 */
 			const wallet = createSimpleWallet(result.password);
 			const pass = new Password(result.password);
 			const account = wallet.open(pass);
 			const address = account.address.pretty();
-			console.log(green('\nCache wallet successfully created.\n'));
-			console.log(white('You can now start sending and receiving cache!\n'));
-			console.log(white(`\nCache Public Address:`));
+			console.log(green(`${MOSAIC_NAME} wallet successfully created.`));
+			console.log(white(`You can now start sending and receiving ${MOSAIC_NAME}!`));
+			console.log(white(`\n${MOSAIC_NAME} Public Address:`));
 			console.log(yellow(`${address}`));
 			console.log(white(`\nPrivate Key:`));
 			console.log(yellow(`${account.privateKey}`));
@@ -98,9 +127,12 @@ This password will be used to encrypt your private key and make working with you
 	})
 };
 
+/**
+ * Get users password and attempt opening the wallet
+ */
 const attemptWalletOpen = (wallet: SimpleWallet): Promise<Account> => {
 	return new Promise<Account>((resolve, reject) => {
-		prompt.message = white('Wallet Login');
+		prompt.message = white('wallet login');
 		prompt.start();
 		prompt.get({
 			properties: {
@@ -121,10 +153,18 @@ const attemptWalletOpen = (wallet: SimpleWallet): Promise<Account> => {
 		});
 	});
 };
+
+/**
+ * Load wallet from file system
+ */
 const loadWallet = (): SimpleWallet => {
 	const contents = fs.readFileSync(PATH_WALLET);
 	return SimpleWallet.readFromWLT(contents);
 };
+
+/**
+ * Talk to NEM API to fetch the mosaic balance & XEM balance
+ */
 const printBalance = async (onBalance: (balance: number) => void) => {
 	const wallet = loadWallet();
 	try {
@@ -135,38 +175,59 @@ const printBalance = async (onBalance: (balance: number) => void) => {
 		spinner.setSpinnerString(0);
 		spinner.start();
 		const balances = await getAccountBalances(account);
-		const cache = await cacheBalance(balances);
+		const mosaic = await mosaicBalance(balances);
 		const xem = await xemBalance(balances);
 		spinner.stop();
-		const bal = (cache / 1e6).toString();
+		/**
+		 * Convert raw number into user-readable string
+		 * 1e6 is Scientific Notation - adds the decimal six
+		 * places from the right: ie 156349876 => 156.349876
+		 */
+		const bal = (mosaic / 1e6).toString();
 		const xemBal = (xem / 1e6).toString();
 		console.log('\n');
 		console.log(`\n${white('XEM Balance:')} ${white(xemBal)}`);
-		console.log(`\n${white('Cache Balance:')} ${white(bal)}\n`);
-		onBalance(cache / 1e6);
+		console.log(`\n${white(`${MOSAIC_NAME} Balance:`)} ${white(bal)}\n`);
+		onBalance(mosaic / 1e6);
 	} catch (err) {
 		if (err) {
 			console.log(err);
 		}
 	}
 };
+
+/**
+ * Main entry point for wallet
+ */
 const main = async () => {
 	if (args[0] === 'wallet') {
 		if (args[1] === 'create') {
-			return createPwd();
+			createPwd();
 		}
-
+	} else {
+		/**
+		 * If the default wallet file is not in the correct path
+		 * throw an error
+		 */
 		if (!fs.existsSync(PATH_WALLET)) {
-			console.log(red(`Cannot find default wallet. Please place a file named ${white('cache-wallet.wlt')} at this location: ${PATH_WALLET}`));
+			const file = `${MOSAIC_NAME}-wallet.wlt`;
+			console.log(red(`Cannot find default wallet. Please place a file named ${white(file)} at this location: ${PATH_WALLET}`));
 			process.exit(1);
 		}
 
-		if (args[1] === 'balance') {
+		/**
+		 * Fetch and display the wallet balance
+		 */
+		if (args[0] === 'balance') {
 			await printBalance(_ => {});
-		} else if (args[1] === 'send') {
+		} else if (args[0] === 'send') {
+			/**
+			 * Manage user input for sending mosaic to another wallet
+			 * printBalance for user convenience
+			 */
 			await printBalance(async (balance) => {
-				const amt = parseFloat(args[2]);
-				const address = args[3];
+				const amt = parseFloat(args[1]);
+				const address = args[2];
 				if (isNaN(amt)) {
 					console.log(red('Must provide a valid number with maximum of 6 digits ie 10.356784'));
 					process.exit(1);
@@ -176,7 +237,7 @@ const main = async () => {
 					process.exit(1);
 				}
 				if  (amt > balance) {
-					console.log(red(`You don't have enough cache to send`));
+					console.log(red(`You don't have enough ${MOSAIC_NAME} to send`));
 					process.exit(1);
 				}
 				try {
@@ -184,11 +245,11 @@ const main = async () => {
 					const xemFee = (preTransaction.fee / 1e6).toString();
 					console.log(white('Transaction Details: \n'));
 					console.log(`Recipient:          ${yellow(address)}\n`);
-					console.log(`Cache to send:      ${yellow(amt.toString())}\n`);
+					console.log(`${MOSAIC_NAME} to send:      ${yellow(amt.toString())}\n`);
 					console.log(`XEM Fee:            ${yellow(xemFee)}\n\n`);
 					console.log(`${white('Would you like to proceed?\n')}`);
 
-					prompt.message = white('Cache Transfer');
+					prompt.message = white(`${MOSAIC_NAME} Transfer`);
 					prompt.start();
 					prompt.get({
 						properties: {
@@ -199,7 +260,7 @@ const main = async () => {
 					}, async (_, result) => {
 						if (result.confirmation.toLowerCase() === 'y' || result.confirmation.toLowerCase() === 'yes') {
 							try {
-								const result = await sendCache(address, amt, selectedAccount);
+								const result = await sendMosaic(address, amt, selectedAccount);
 								console.log(result);
 								console.log('\n\n');
 								console.log(white('Transaction successfully announced to the NEM blockchain. Transaction could take some time. Come back here in 5 minutes to check your balance to ensure that the transaction was successfully sent\n'));
