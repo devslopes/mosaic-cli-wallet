@@ -171,6 +171,7 @@ const printBalance = async (onBalance: (balance: number) => void) => {
 		const account = await attemptWalletOpen(wallet);
 		selectedAccount = account;
 		console.log('\n');
+		console.log(`\n${white('Public Address:')} ${white(account.address.pretty())}\n`);
 		const spinner = new Spinner(yellow('Fetching balance... %s'));
 		spinner.setSpinnerString(0);
 		spinner.start();

@@ -1,6 +1,6 @@
 {
   "name": "cache-wallet",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The official wallet app for the cache cryptocurrency",
   "main": "src/index.js",
   "bin": {
