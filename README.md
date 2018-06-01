@@ -1,24 +1,7 @@
-![Wallet Logo](assets/logo.png)
+# Mosaic CLI Wallet
 
-# Cache Wallet
+This is a CLI wallet for managing XEM or your own mosaics/cryptocurrencies. This wallet is built on the [NEM blockchain](https://nem.io). Requires Node 8.0+ to run.
 
-This is the official wallet for the **cache** cryptocurrency. **cache** is built on the [NEM blockchain](https://nem.io). This is a CLI version of the wallet and requires Node 8.0+ to run.
-
-Cache works on top of XEM and you will need a small amount of it to cover fees for transferring cache. Download the NEM Nano Wallet to get some XEM:
-
-[![xem](/assets/xem-wallet.png?raw=true)](https://nem.io/downloads)
-
-# Getting Started
-
-To install run `npm i -g cache-wallet`.
-
-To see common commands run: `cache` in your terminal. 
-
-Other commands:
-
-To check **cache** balance: `cache balance`
-
-To send **cache** run: `cache send <amt> <public address>` ie `cache send 12.345 TCUPK5-XWIWZK-PZIKKR-7XJ5EO-L6XJJJ-JSYX4X-IQP6`
 
 # Can I Use This Wallet For My Own Cryptocurrency?
 
@@ -31,6 +14,6 @@ The current version of this app allows creation of a SimpleWallet. Creating Brai
 
 # Test vs Production
 
-The npm package for cache-wallet is on the MainNet (production)
+The npm package for mosaic-cli-wallet is on the MainNet (production)
 
 This repo is set on the TestNet. You can change this any time.
